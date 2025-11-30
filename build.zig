@@ -35,6 +35,12 @@ pub fn build(b: *std.Build) void {
     lib.addImport("raylib", raylib);
     lib.addImport("raygui", raygui);
 
+    const zclay_dep = b.dependency("zclay", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    lib.addImport("zclay", zclay_dep.module("zclay"));
+
     b.installArtifact(exe);
 
     const run_step = b.step("run", "Run the app");
