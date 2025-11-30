@@ -1,23 +1,164 @@
 const std = @import("std");
 const rlz = @import("raylib");
-const rlzg = @import("raygui");
+const clay = @import("zclay");
+const rc = @import("raylib_clay_renderer.zig");
 
 var size: [2]i32 = .{0, 0};
+var memory: []u8 = undefined; 
 
-pub fn init(name: [:0]const u8, size_: [2]i32) void {
-    size = size_;
-    rlz.initWindow(size[0], size[1], name);
+const colors = struct {
+    const background: clay.Color = hexToRgb("#181a1b");
+    const button: clay.Color = hexToRgb("#596064");
+    const text: clay.Color = hexToRgb("#e8e6e3");
+    const border: clay.Color = hexToRgb("#545b5e");
+};
+
+fn hexToRgb(comptime hex: []const u8) clay.Color {
+    if (hex.len < 6) @compileError("Your color has length less than 6...");
+    const starts_with_hashtag: bool = (hex[0] == '#');
+    const has_alpha: bool = (hex.len > (6 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))));
+
+    if (hex.len != (6 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))) and hex.len != (8 + @as(usize, @intCast(@intFromBool(starts_with_hashtag))))) @compileError("Your color has incorrect length");
+
+    const r: [2]u8 = .{hex[0 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))], hex[1 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))]};
+    const g: [2]u8 = .{hex[2 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))], hex[3 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))]};
+    const b: [2]u8 = .{hex[4 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))], hex[5 + @as(usize, @intCast(@intFromBool(starts_with_hashtag)))]};
+
+    const func = struct {
+        pub fn hexToU8(num: [2]u8) u8 {
+            const first_digit = switch (num[0]) {
+                '0' => 0, '1' => 1, '2' => 2, '3' => 3, '4' => 4, '5' => 5, '6' => 6, '7' => 7, '8' => 8, '9' => 9, 'a' => 10, 'b' => 11, 'c' => 12, 'd' => 13, 'e' => 14, 'f' => 15, else => @compileError("Wrong color"),
+            };
+
+            const second_digit = switch (num[1]) {
+                '0' => 0, '1' => 1, '2' => 2, '3' => 3, '4' => 4, '5' => 5, '6' => 6, '7' => 7, '8' => 8, '9' => 9, 'a' => 10, 'b' => 11, 'c' => 12, 'd' => 13, 'e' => 14, 'f' => 15, else => @compileError("Wrong color"),
+            };
+
+            return first_digit * 16 + second_digit;
+        }
+    };
+
+    return .{func.hexToU8(r), func.hexToU8(g), func.hexToU8(b), if (has_alpha) func.hexToU8(.{hex[6 + @intFromBool(starts_with_hashtag)], hex[7 + @intFromBool(starts_with_hashtag)]}) else 255};
 }
 
-pub fn loop() void {
+pub fn init(name: [:0]const u8, size_: [2]i32, allocator: std.mem.Allocator) !void {
+    size = size_;
+    rlz.setConfigFlags(.{ .window_resizable = true });
+    rlz.setTraceLogLevel(.warning);
+    rlz.initWindow(size[0], size[1], name);
+
+    //rc.raylib_fonts[0] = try rlz.loadFontFromMemory(".ttf", @embedFile("../assets/fonts/Menlo-Regular.ttf"), 20, null);
+    rc.raylib_fonts[0] = try rlz.loadFontEx("assets/fonts/HackNerdFontMono-Regular.ttf", 32, null);
+    rlz.setTextureFilter(rc.raylib_fonts[0].?.texture, .bilinear);
+
+    const min_memory_size: u32 = clay.minMemorySize();
+    memory = try allocator.alloc(u8, min_memory_size);
+    const arena: clay.Arena = clay.createArenaWithCapacityAndMemory(memory);
+    _ = clay.initialize(arena, .{ .h = @floatFromInt(rlz.getRenderHeight()), .w = @floatFromInt(rlz.getRenderWidth()) }, .{});
+    clay.setMeasureTextFunction(void, {}, rc.measureText);
+
+    std.log.debug("Clay needed {d} bytes!", .{min_memory_size});
+}
+
+pub fn loop(allocator: std.mem.Allocator) !void {
     while (!rlz.windowShouldClose()) {
-        rlz.clearBackground(.ray_white);
+        clay.setPointerState(.{ 
+            .x = @floatFromInt(rlz.getMouseX()),
+            .y = @floatFromInt(rlz.getMouseY()),
+        }, rlz.isMouseButtonDown(.left));
+
+        if (rlz.isKeyPressed(.d)) {
+            clay.setDebugModeEnabled(!clay.isDebugModeEnabled());
+        }
+
+        if (rlz.isWindowResized()) clay.setLayoutDimensions(.{ .h = @floatFromInt(rlz.getRenderHeight()), .w = @floatFromInt(rlz.getRenderWidth()) });
+
+        clay.beginLayout();
+        clay.UI()(clay.ElementDeclaration{
+            .id = .ID("Root"),
+            .layout = .{
+                .padding = .all(4), 
+                .child_gap = 4,
+                .sizing = .grow,
+            },
+        })({
+            // Placeholder for the cells illustration
+            clay.UI()(clay.ElementDeclaration{
+                .id = .ID("Cells"),
+                .layout = .{ .sizing = .{ .h = .grow, .w = .percent(0.8) }},
+                .background_color = colors.background,
+                .border = .{ .width = .outside(2), .color = colors.border },
+            })({
+                text("If you're seeing this, something's wrong.", .grow, .ID("CellsText"));
+            });
+
+            // The "cell select" menu
+            clay.UI()(clay.ElementDeclaration{
+                .id = .ID("Menu"),
+                .layout = .{ 
+                    .sizing = .grow,
+                    .direction = .top_to_bottom,
+                    .child_alignment = .{ .x = .center, .y = .top },
+                    .child_gap = 4,
+                    .padding = .all(16),
+                },
+                .background_color = colors.background,
+                .border = .{ .width = .outside(2), .color = colors.border },
+            })({
+                // The time menu
+                clay.UI()(clay.ElementDeclaration{
+                    .id = .ID("TimeControl"),
+                    .layout = .{
+                        .sizing = .{
+                            .w = .grow,
+                            .h = .fit,
+                        },
+                        .child_gap = 8,
+                        .child_alignment = .center,
+                        .padding = .all(8),
+                    },
+                    .border = .{ .color = colors.border, .width = .outside(2) },
+                    .corner_radius = .all(4),
+                })({
+
+                });
+            });
+        });
+        const commands = clay.endLayout();
+
         rlz.beginDrawing();
-        rlz.drawText("Hello, world!", 0, 0, 30, .black);
+        rlz.clearBackground(.init(42, 42, 42, 255));
+        const title_nnt: []u8 = try std.fmt.allocPrint(allocator, "FPS: {d}", .{rlz.getFPS()});
+        const title: [:0]u8 = try allocator.dupeZ(u8, title_nnt);
+        rlz.setWindowTitle(title);
+        allocator.free(title);
+        allocator.free(title_nnt);
+        try rc.clayRaylibRender(commands, allocator);
         rlz.endDrawing();
     }
 }
 
-pub fn deinit() void {
+fn imageButton(texture: *rlz.Texture, elementId: clay.ElementId) void {
+    _ = texture;
+    clay.UI()(clay.ElementDeclaration{
+        .id = elementId,
+        .layout = .{ .sizing = .{ .h = .fixed(50), .w = .fixed(50) } },
+        .background_color = colors.button,
+    })({
+
+    });
+}
+
+fn text(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId) void {
+    clay.UI()(clay.ElementDeclaration{
+        .id = id,
+        .layout = .{ .sizing = sizing, .child_alignment = .center },
+    })({
+        clay.text(string orelse "Placeholder", .{ .color = colors.text, .alignment = .center });
+    });
+}
+
+pub fn deinit(allocator: std.mem.Allocator) void {
     rlz.closeWindow();
+    defer allocator.free(memory);
 }
