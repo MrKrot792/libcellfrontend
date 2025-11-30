@@ -21,3 +21,12 @@ pub fn text(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId) void {
     });
 }
 
+pub fn separator(id: clay.ElementId) void {
+    clay.UI()(clay.ElementDeclaration{
+        .id = id,
+        .layout = .{
+            .sizing = .{ .h = .fit, .w = .grow },
+        },
+        .border = .{ .width = .outside(1), .color = colors.separator },
+    })({});
+}
