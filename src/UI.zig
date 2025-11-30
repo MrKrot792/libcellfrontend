@@ -37,7 +37,7 @@ pub fn draw(allocator: std.mem.Allocator) !void {
         .y = @floatFromInt(rlz.getMouseY()),
     }, rlz.isMouseButtonDown(.left));
 
-    if (rlz.isKeyPressed(.d)) {
+    if (rlz.isKeyPressed(.h)) {
         clay.setDebugModeEnabled(!clay.isDebugModeEnabled());
     }
 
