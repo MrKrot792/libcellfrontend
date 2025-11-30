@@ -3,6 +3,7 @@ const rlz = @import("raylib");
 const clay = @import("zclay");
 const rc = @import("raylib_clay_renderer.zig");
 
+const layout = @import("layout.zig");
 const colors = @import("colors.zig");
 
 var size: [2]i32 = .{0, 0};
@@ -56,7 +57,7 @@ pub fn loop(allocator: std.mem.Allocator) !void {
                 .background_color = colors.background,
                 .border = .{ .width = .outside(2), .color = colors.border },
             })({
-                text("If you're seeing this, something's wrong.", .grow, .ID("CellsText"));
+                layout.text("If you're seeing this, something's wrong.", .grow, .ID("CellsText"));
             });
 
             // The "cell select" menu
@@ -103,26 +104,6 @@ pub fn loop(allocator: std.mem.Allocator) !void {
         try rc.clayRaylibRender(commands, allocator);
         rlz.endDrawing();
     }
-}
-
-fn imageButton(texture: *rlz.Texture, elementId: clay.ElementId) void {
-    _ = texture;
-    clay.UI()(clay.ElementDeclaration{
-        .id = elementId,
-        .layout = .{ .sizing = .{ .h = .fixed(50), .w = .fixed(50) } },
-        .background_color = colors.button,
-    })({
-
-    });
-}
-
-fn text(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId) void {
-    clay.UI()(clay.ElementDeclaration{
-        .id = id,
-        .layout = .{ .sizing = sizing, .child_alignment = .center },
-    })({
-        clay.text(string orelse "Placeholder", .{ .color = colors.text, .alignment = .center });
-    });
 }
 
 pub fn deinit(allocator: std.mem.Allocator) void {
