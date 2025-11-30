@@ -25,6 +25,12 @@ pub fn deinit(allocator: std.mem.Allocator) void {
     allocator.free(memory);
 }
 
+pub fn getCellsDimensions() clay.BoundingBox {
+    const result = clay.getElementData(.ID("CellsContainer"));
+    if (!result.found) log.err("Could not create a bounding box for the cells renderer!", .{});
+    return result.bounding_box;
+}
+
 pub fn draw(allocator: std.mem.Allocator) !void {
     clay.setPointerState(.{ 
         .x = @floatFromInt(rlz.getMouseX()),
@@ -49,11 +55,17 @@ pub fn draw(allocator: std.mem.Allocator) !void {
         // Placeholder for the cells illustration
         clay.UI()(clay.ElementDeclaration{
             .id = .ID("Cells"),
-            .layout = .{ .sizing = .{ .h = .grow, .w = .percent(0.8) }},
+            .layout = .{ .sizing = .{ .h = .grow, .w = .percent(0.8) }, .padding = .all(2)},
             .background_color = colors.background,
             .border = .{ .width = .outside(2), .color = colors.border },
         })({
-            layout.text("If you're seeing this, something's wrong.", .grow, .ID("CellsText"));
+            clay.UI()(clay.ElementDeclaration{
+                .id = .ID("CellsContainer"),
+                .layout = .{ .sizing = .grow },
+                .background_color = colors.background,
+            })({
+                layout.text("If you're seeing this, something's wrong.", .grow, .ID("CellsText"), .center);
+            });
         });
 
         // The "cell select" menu
@@ -63,32 +75,17 @@ pub fn draw(allocator: std.mem.Allocator) !void {
                 .sizing = .grow,
                 .direction = .top_to_bottom,
                 .child_alignment = .{ .x = .center, .y = .top },
-                .child_gap = 4,
+                .child_gap = 8,
                 .padding = .all(16),
             },
             .background_color = colors.background,
             .border = .{ .width = .outside(2), .color = colors.border },
         })({
-            // The time menu
-            clay.UI()(clay.ElementDeclaration{
-                .id = .ID("TimeControl"),
-                .layout = .{
-                    .sizing = .{
-                        .w = .grow,
-                        .h = .fit,
-                    },
-                    .child_gap = 8,
-                    .child_alignment = .center,
-                    .padding = .all(8),
-                },
-                .border = .{ .color = colors.border, .width = .outside(2) },
-                .corner_radius = .all(4),
-            })({
-
-            });
+            layout.text("Information", .{ .h = .fit, .w = .grow }, .ID("Information"), .center);
+            layout.separator(.ID("Separator"));
+            layout.bulletText("Time control", .{ .h = .fit, .w = .grow }, .ID("TimeControl"), .{ .x = .left, .y = .center });
         });
     });
     const commands = clay.endLayout();
-
     try rc.clayRaylibRender(commands, allocator);
 }

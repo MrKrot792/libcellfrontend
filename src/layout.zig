@@ -12,12 +12,31 @@ pub fn imageButton(texture: *rlz.Texture, elementId: clay.ElementId) void {
     });
 }
 
-pub fn text(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId) void {
+pub fn text(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId, aligment: clay.ChildAlignment) void {
+    textColor(string, sizing, id, aligment, colors.text);
+}
+
+pub fn textColor(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId, aligment: clay.ChildAlignment, color: clay.Color) void {
     clay.UI()(clay.ElementDeclaration{
         .id = id,
-        .layout = .{ .sizing = sizing, .child_alignment = .center },
+        .layout = .{ .sizing = sizing, .child_alignment = aligment },
     })({
-        clay.text(string orelse "Placeholder", .{ .color = colors.text, .alignment = .center });
+        clay.text(string orelse "Placeholder", .{ .color = color, .alignment = .center });
+    });
+}
+
+pub fn bulletText(string: ?[]const u8, sizing: clay.Sizing, id: clay.ElementId, aligment: clay.ChildAlignment) void {
+    clay.UI()(clay.ElementDeclaration{
+        .id = id,
+        .layout = .{ .child_alignment = aligment, .sizing = sizing },
+    })({
+        clay.UI()(clay.ElementDeclaration{
+            .id = .localID("TextWithBullet"),
+            .layout = .{ .direction = .left_to_right, .child_gap = 8 },
+        })({
+            textColor("-", .fit, .localID("Bullet"), .center, colors.bullet);
+            textColor(string, .grow, .localID("Text"), .center, colors.text);
+        });
     });
 }
 

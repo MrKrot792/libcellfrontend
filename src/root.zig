@@ -22,7 +22,7 @@ pub fn loop(allocator: std.mem.Allocator) !void {
 
             // Drawing the UI
             try ui.draw(allocator);
-            cells.draw();
+            try cells.draw(ui.getCellsDimensions());
         rlz.endDrawing();
 
         allocator.free(title);

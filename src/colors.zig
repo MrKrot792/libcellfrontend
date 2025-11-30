@@ -5,6 +5,7 @@ pub const button: clay.Color = hexToRgb("#596064");
 pub const text: clay.Color = hexToRgb("#e8e6e3");
 pub const border: clay.Color = hexToRgb("#545b5e");
 pub const separator: clay.Color = hexToRgb("#484d4e");
+pub const bullet: clay.Color = hexToRgb("#484d4e"); // TODO: placeholder (probably)
 
 pub fn hexToRgb(comptime hex: []const u8) clay.Color {
     if (hex.len < 6) @compileError("Your color has length less than 6...");
