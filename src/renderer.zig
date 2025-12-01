@@ -29,7 +29,7 @@ pub fn init(name: [:0]const u8, size: [2]i32) !void {
     renderTexture = try .init(1, 1);
 }
 
-pub fn draw(where: clay.BoundingBox) !void {
+pub fn draw(where: clay.BoundingBox, delta: f32) !void {
     rlz.updateTexture(texture, image.data);
 
     if (rlz.isWindowResized()) {
@@ -37,16 +37,16 @@ pub fn draw(where: clay.BoundingBox) !void {
         camera.offset = .init(where.width / 2.0, where.height / 2.0);
     }
 
-    const speed:      f32 = 0.8;
-    const zoom_speed: f32 = 0.005;
+    const speed:      f32 = 200;
+    const zoom_speed: f32 = 1;
 
-    if (rlz.isKeyDown(.w)) camera.target.y += speed / camera.zoom;
-    if (rlz.isKeyDown(.a)) camera.target.x -= speed / camera.zoom;
-    if (rlz.isKeyDown(.s)) camera.target.y -= speed / camera.zoom;
-    if (rlz.isKeyDown(.d)) camera.target.x += speed / camera.zoom;
+    if (rlz.isKeyDown(.w)) camera.target.y += speed / camera.zoom * delta;
+    if (rlz.isKeyDown(.a)) camera.target.x -= speed / camera.zoom * delta;
+    if (rlz.isKeyDown(.s)) camera.target.y -= speed / camera.zoom * delta;
+    if (rlz.isKeyDown(.d)) camera.target.x += speed / camera.zoom * delta;
 
-    if (rlz.isKeyDown(.j)) camera.zoom += zoom_speed * camera.zoom;
-    if (rlz.isKeyDown(.k)) camera.zoom -= zoom_speed * camera.zoom;
+    if (rlz.isKeyDown(.j)) camera.zoom += zoom_speed * camera.zoom * delta;
+    if (rlz.isKeyDown(.k)) camera.zoom -= zoom_speed * camera.zoom * delta;
 
     renderTexture.begin();
     camera.begin();
