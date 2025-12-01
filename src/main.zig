@@ -3,16 +3,24 @@ const libcellfrontend = @import("libcellfrontend");
 
 const log = std.log.scoped(.user);
 
-pub fn main() !void {
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    defer {
-        switch (debug_allocator.deinit()) {
-            .leak => log.debug("You leaked memory dum dum", .{}),
-            .ok => log.debug("No memory leaks. For now...", .{}),
-        }
-    }
+var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+const builtin = @import("builtin");
 
-    const allocator = debug_allocator.allocator();
+pub fn main() !void {
+    // just copypasting this from project to project
+    const allocator, const is_debug = gpa: {
+        break :gpa switch (builtin.mode) {
+            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+        };
+    };
+
+    defer if (is_debug) {
+        switch (debug_allocator.deinit()) {
+            .leak => log.warn("Memory was leaked!", .{}),
+            .ok => log.debug("There were no memory leaks.", .{}),
+        }
+    };
 
     try libcellfrontend.init("cool window", .{800, 500}, allocator);
     try libcellfrontend.loop(allocator);
