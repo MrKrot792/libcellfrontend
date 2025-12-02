@@ -7,6 +7,12 @@ var image: rlz.Image = undefined;
 var texture: rlz.Texture = undefined;
 var renderTexture: rlz.RenderTexture2D = undefined;
 
+const speed:      f32 = 200;
+const zoom_speed: f32 = 1;
+
+const wheel_zoom_speed: f32 = 100;
+
+
 var camera: rlz.Camera2D = .{ 
     .offset = .{ .x = 0, .y = 0 }, // not .zero because it's not comptime
     .rotation = 0, 
@@ -37,9 +43,6 @@ pub fn draw(where: clay.BoundingBox, delta: f32) !void {
         camera.offset = .init(where.width / 2.0, where.height / 2.0);
     }
 
-    const speed:      f32 = 200;
-    const zoom_speed: f32 = 1;
-
     if (rlz.isKeyDown(.w)) camera.target.y += speed / camera.zoom * delta;
     if (rlz.isKeyDown(.a)) camera.target.x -= speed / camera.zoom * delta;
     if (rlz.isKeyDown(.s)) camera.target.y -= speed / camera.zoom * delta;
@@ -47,6 +50,18 @@ pub fn draw(where: clay.BoundingBox, delta: f32) !void {
 
     if (rlz.isKeyDown(.j)) camera.zoom += zoom_speed * camera.zoom * delta;
     if (rlz.isKeyDown(.k)) camera.zoom -= zoom_speed * camera.zoom * delta;
+
+    if (inTheBox(rlz.getMousePosition(), where) and rlz.isMouseButtonDown(.left)) {
+        const mouse_delta = rlz.getMouseDelta();
+        camera.target = camera.target.add(rlz.Vector2{
+            .x = -mouse_delta.x / camera.zoom, 
+            .y = mouse_delta.y / camera.zoom,
+        });
+    }
+
+    const mouse_wheel_move = rlz.getMouseWheelMove();
+    camera.zoom += mouse_wheel_move * delta * wheel_zoom_speed;
+    camera.zoom = clamp(f32, camera.zoom, 0.1, 70);
 
     renderTexture.begin();
     camera.begin();
@@ -56,8 +71,23 @@ pub fn draw(where: clay.BoundingBox, delta: f32) !void {
     renderTexture.end();
 
     renderTexture.texture.draw(@intFromFloat(where.x), @intFromFloat(where.y), .white);
+
+    std.debug.print("zoom: {d}, wheel: {d}\n", .{camera.zoom, rlz.getMouseWheelMove()});
 }
 
 pub fn deinit() void {
     rlz.closeWindow();
+}
+
+fn inTheBox(pos: rlz.Vector2, box: clay.BoundingBox) bool {
+    return (pos.x > box.x)               and 
+           (pos.x < (box.width + box.x)) and
+           (pos.y > box.y)               and 
+           (pos.y < (box.height + box.y));
+}
+
+fn clamp(comptime T: anytype, num: T, min: T, max: T) T {
+         if (num < min) { return min; }
+    else if (num > max) { return max; }
+    else return num;
 }
