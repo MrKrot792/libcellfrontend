@@ -71,8 +71,6 @@ pub fn draw(where: clay.BoundingBox, delta: f32) !void {
     renderTexture.end();
 
     renderTexture.texture.draw(@intFromFloat(where.x), @intFromFloat(where.y), .white);
-
-    std.debug.print("zoom: {d}, wheel: {d}\n", .{camera.zoom, rlz.getMouseWheelMove()});
 }
 
 pub fn deinit() void {
