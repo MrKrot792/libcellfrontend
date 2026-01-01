@@ -2,10 +2,14 @@ const std = @import("std");
 
 const vector = struct {
     x: u32, y: u32,
+
+    pub fn vec(x: u32, y: u32) vector {
+        return .{.x = x, .y = y};
+    }
 };
 
 /// An actual image, but every pixel is `template`.
-pub fn image(comptime template: type, size_in: vector) type {
+pub fn image(comptime template: type, comptime size_in: vector) type {
     return struct {
         const T: type = template;
         const size: vector = size_in;
